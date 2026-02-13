@@ -1,0 +1,110 @@
+:root {
+    --primary: #ff4d6d;
+    --bg: #fff5f7;
+    --text: #590d22;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: var(--bg);
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    margin: 0;
+    transition: background 0.3s;
+}
+
+.mood-container {
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+.back-btn { text-decoration: none; color: var(--primary); font-size: 0.9rem; float: left; }
+
+h1 { color: var(--primary); margin-top: 40px; }
+
+.mood-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin: 30px 0;
+}
+
+.mood-card {
+    background: white;
+    border: 2px solid transparent;
+    border-radius: 20px;
+    padding: 20px;
+    cursor: pointer;
+    transition: 0.3s;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+}
+
+.mood-card:hover { transform: translateY(-5px); border-color: var(--primary); }
+.mood-card.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+.emoji { font-size: 2rem; display: block; }
+.label { font-weight: 600; margin-top: 5px; display: block; }
+
+.partner-status {
+    background: white;
+    padding: 25px;
+    border-radius: 30px;
+    box-shadow: 0 15px 40px rgba(255, 77, 109, 0.1);
+    margin-top: 20px;
+    position: relative;
+}
+
+.big-emoji { font-size: 4rem; margin: 10px 0; }
+
+.suggestions { margin: 15px 0; display: flex; flex-wrap: wrap; justify-content: center; }
+
+.action-pill {
+    background: #ffebef;
+    color: var(--primary);
+    padding: 8px 15px;
+    border-radius: 20px;
+    margin: 5px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* Nudge Button & Animation */
+.nudge-btn {
+    margin-top: 20px;
+    background: white;
+    border: 2px solid var(--primary);
+    color: var(--primary);
+    padding: 12px 25px;
+    border-radius: 25px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.nudge-btn:hover { background: var(--primary); color: white; }
+
+.nudge-icon {
+    display: inline-block;
+    animation: pulseHeart 1.5s infinite;
+}
+
+@keyframes pulseHeart {
+    0%, 100% { transform: scale(1); }
+    15% { transform: scale(1.3); }
+    30% { transform: scale(1.1); }
+    45% { transform: scale(1.3); }
+}
+
+/* Shake Animation */
+.shake-screen {
+    animation: shakeEffect 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shakeEffect {
+    10%, 90% { transform: translate3d(-1px, 0, 0); }
+    20%, 80% { transform: translate3d(2px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+    40%, 60% { transform: translate3d(4px, 0, 0); }
+}

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mood Sync | Distance Love</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="mood-container">
+        <header>
+            <a href="../index.html" class="back-btn">← Back</a>
+            <h1>How are you feeling?</h1>
+            <p>Your partner will see your mood instantly.</p>
+        </header>
+
+        <div class="mood-grid">
+            <button class="mood-card" data-mood="happy" data-emoji="😊">
+                <span class="emoji">😊</span>
+                <span class="label">Happy</span>
+            </button>
+            <button class="mood-card" data-mood="stressed" data-emoji="😫">
+                <span class="emoji">😫</span>
+                <span class="label">Stressed</span>
+            </button>
+            <button class="mood-card" data-mood="lonely" data-emoji="☁️">
+                <span class="emoji">☁️</span>
+                <span class="label">Lonely</span>
+            </button>
+            <button class="mood-card" data-mood="excited" data-emoji="✨">
+                <span class="emoji">✨</span>
+                <span class="label">Excited</span>
+            </button>
+        </div>
+
+        <div id="partnerStatus" class="partner-status">
+            <h3>Partner's Mood</h3>
+            <div class="status-content">
+                <div id="partnerEmoji" class="big-emoji">❓</div>
+                <p id="partnerText">Waiting for update...</p>
+            </div>
+            <div id="suggestions" class="suggestions"></div>
+            
+            <button id="nudgeBtn" class="nudge-btn">
+                <span class="nudge-icon">💓</span> Send a Nudge
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="mood.js"></script>
+</body>
+</html>

@@ -1,101 +1,91 @@
-// --- DOM Elements ---
-const saveBtn = document.getElementById('saveBtn');
-const titleInput = document.getElementById('capsuleTitle');
-const messageInput = document.getElementById('capsuleMessage');
-const dateInput = document.getElementById('unlockDate');
-const container = document.getElementById('capsuleContainer');
-const feedback = document.getElementById('formFeedback');
+// 1. Database Setup
+let db;
+const dbRequest = indexedDB.open("TimeCapsuleDB", 1);
 
-// --- Core Logic ---
+dbRequest.onupgradeneeded = (e) => {
+    db = e.target.result;
+    db.createObjectStore("capsules", { keyPath: "id", autoIncrement: true });
+};
 
-// 1. Initialize App
-document.addEventListener('DOMContentLoaded', () => {
+dbRequest.onsuccess = (e) => {
+    db = e.target.result;
     displayCapsules();
-    // Start the global countdown refresh
-    setInterval(displayCapsules, 60000); // Refresh every minute
-});
+};
 
-// 2. Save Capsule
-saveBtn.addEventListener('click', () => {
-    const title = titleInput.value.trim();
-    const message = messageInput.value.trim();
-    const unlockDate = new Date(dateInput.value);
-    const now = new Date();
+// 2. Helper: Convert File to Blob (Standard for Databases)
+const getFileData = (inputElement) => {
+    return inputElement.files[0] || null;
+};
 
-    // Validation
-    if (!title || !message || !dateInput.value) {
-        showFeedback("Please fill in all fields.", "error");
-        return;
-    }
+// 3. Save Logic
+document.getElementById('saveBtn').addEventListener('click', async () => {
+    const title = document.getElementById('capsuleTitle').value;
+    const message = document.getElementById('capsuleMessage').value;
+    const unlockDate = document.getElementById('unlockDate').value;
+    const imageFile = getFileData(document.getElementById('imageInput'));
+    const mediaFile = getFileData(document.getElementById('mediaInput'));
 
-    if (unlockDate <= now) {
-        showFeedback("Unlock date must be in the future!", "error");
-        return;
-    }
+    if (!title || !unlockDate) return alert("Title and Date are required!");
 
-    const newCapsule = {
-        id: Date.now(),
+    const capsule = {
         title,
         message,
-        unlockDate: dateInput.value
+        unlockDate,
+        imageFile, // Storing the actual file object
+        mediaFile, 
+        createdAt: new Date().getTime()
     };
 
-    const existingCapsules = JSON.parse(localStorage.getItem('capsules') || '[]');
-    existingCapsules.push(newCapsule);
-    localStorage.setItem('capsules', JSON.stringify(existingCapsules));
+    const transaction = db.transaction(["capsules"], "readwrite");
+    const store = transaction.objectStore("capsules");
+    store.add(capsule);
 
-    showFeedback("Capsule sealed and buried!", "success");
-    clearForm();
-    displayCapsules();
+    transaction.oncomplete = () => {
+        alert("Memory Sealed!");
+        location.reload(); // Refresh to show new capsule
+    };
 });
 
-// 3. Render Dashboard
+// 4. Display Logic
 function displayCapsules() {
-    const capsules = JSON.parse(localStorage.getItem('capsules') || '[]');
-    container.innerHTML = '';
+    const container = document.getElementById('capsuleContainer');
+    const transaction = db.transaction(["capsules"], "readonly");
+    const store = transaction.objectStore("capsules");
+    const request = store.getAll();
 
-    if (capsules.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color:#888;">No memories stored yet.</p>';
-        return;
-    }
+    request.onsuccess = () => {
+        const capsules = request.result;
+        container.innerHTML = capsules.length ? '' : '<p>The vault is empty.</p>';
 
-    capsules.forEach(cap => {
-        const timeLeft = calculateTimeLeft(cap.unlockDate);
-        const isUnlocked = timeLeft.total <= 0;
+        capsules.forEach(cap => {
+            const now = new Date();
+            const unlockT = new Date(cap.unlockDate);
+            const isUnlocked = now >= unlockT;
 
-        const card = document.createElement('div');
-        card.className = `capsule-card ${isUnlocked ? 'unlocked' : ''}`;
-        
-        card.innerHTML = `
-            <h3>${cap.title}</h3>
-            ${isUnlocked 
-                ? `<p class="message-content"><strong>Unlocked Message:</strong><br>${cap.message}</p>`
-                : `<p class="countdown">Unlocks in: ${timeLeft.days}d ${timeLeft.hours}h ${timeLeft.minutes}m</p>`
+            const card = document.createElement('div');
+            card.className = 'capsule-card';
+            
+            let content = `<h3>${cap.title}</h3>`;
+
+            if (isUnlocked) {
+                content += `<p>${cap.message}</p>`;
+                if (cap.imageFile) {
+                    const imgUrl = URL.createObjectURL(cap.imageFile);
+                    content += `<img src="${imgUrl}">`;
+                }
+                if (cap.mediaFile) {
+                    const mediaUrl = URL.createObjectURL(cap.mediaFile);
+                    const isVideo = cap.mediaFile.type.includes('video');
+                    content += isVideo 
+                        ? `<video src="${mediaUrl}" controls></video>` 
+                        : `<audio src="${mediaUrl}" controls></audio>`;
+                }
+            } else {
+                content += `<p class="locked-hint">🔒 Locked until ${cap.unlockDate}</p>`;
             }
-        `;
-        container.appendChild(card);
-    });
-}
 
-// 4. Helper: Time Calculation
-function calculateTimeLeft(targetDate) {
-    const total = Date.parse(targetDate) - Date.parse(new Date());
-    const minutes = Math.floor((total / 1000 / 60) % 60);
-    const hours = Math.floor((total / (1000 * 60 * 60)) % 24);
-    const days = Math.floor(total / (1000 * 60 * 60 * 24));
-
-    return { total, days, hours, minutes };
-}
-
-// 5. Helper: UI Utilities
-function showFeedback(msg, type) {
-    feedback.textContent = msg;
-    feedback.className = type;
-    setTimeout(() => { feedback.className = 'hidden'; }, 3000);
-}
-
-function clearForm() {
-    titleInput.value = '';
-    messageInput.value = '';
-    dateInput.value = '';
+            card.innerHTML = content;
+            container.appendChild(card);
+        });
+    };
 }

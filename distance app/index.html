@@ -3,42 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Distance Doesn’t Delete Love | Multimedia Vault</title>
+    <title>Distance Doesn’t Delete Love</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
     <div class="container">
         <header>
-            <h1>Memory Time Capsule</h1>
-            <p>Seal photos, videos, and messages for the future.</p>
+            <h1>Distance Doesn’t Delete Love</h1>
+            <p>Your digital sanctuary for memories.</p>
         </header>
 
         <section class="capsule-form">
-            <input type="text" id="capsuleTitle" placeholder="Capsule Title" required>
-            <textarea id="capsuleMessage" placeholder="Your message..." rows="3"></textarea>
+            <input type="text" id="capsuleTitle" placeholder="Memory Title (e.g., Our First Beach Day)" required>
+            <textarea id="capsuleMessage" placeholder="Type your letter here..." rows="4"></textarea>
             
-            <div class="file-group">
-                <label>📷 Add Photo:</label>
-                <input type="file" id="imageInput" accept="image/*">
+            <div class="media-upload-grid">
+                <label class="file-card" id="imageLabel">
+                    <input type="file" id="imageInput" accept="image/*">
+                    <span class="icon">📷</span>
+                    <span class="label-text">Add Photo</span>
+                </label>
                 
-                <label>🎥 Add Video/Audio:</label>
-                <input type="file" id="mediaInput" accept="video/*,audio/*">
+                <label class="file-card" id="mediaLabel">
+                    <input type="file" id="mediaInput" accept="video/*,audio/*">
+                    <span class="icon">🎥</span>
+                    <span class="label-text">Add Video</span>
+                </label>
             </div>
 
             <div class="date-input">
-                <label>Unlock Date:</label>
-                <input type="date" id="unlockDate" required>
+                <label for="unlockDate">Unlock Date & Time:</label>
+                <input type="datetime-local" id="unlockDate" required>
             </div>
             
-            <button id="saveBtn">Seal Memory</button>
+            <button id="saveBtn">Seal This Memory</button>
             <p id="formFeedback"></p>
         </section>
 
-        <section class="capsule-list">
-            <h2>Your Vault</h2>
-            <div id="capsuleContainer"></div>
+        <section class="vault-section">
+            <h2>The Vault</h2>
+            <div id="capsuleContainer">
+                </div>
         </section>
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

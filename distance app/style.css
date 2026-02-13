@@ -4,6 +4,7 @@
     --bg: #fff5f7;
     --card-bg: #ffffff;
     --text: #590d22;
+    --success: #28a745;
 }
 
 body {
@@ -14,11 +15,7 @@ body {
     padding: 20px;
 }
 
-.container { 
-    max-width: 500px; 
-    margin: 0 auto; 
-    opacity: 0; /* Handled by GSAP */
-}
+.container { max-width: 500px; margin: 0 auto; opacity: 0; }
 
 header { text-align: center; margin-bottom: 30px; }
 header h1 { color: var(--primary); font-weight: 800; }
@@ -33,7 +30,6 @@ header h1 { color: var(--primary); font-weight: 800; }
     gap: 15px;
 }
 
-/* Multimedia Upload Buttons */
 .media-upload-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -41,6 +37,7 @@ header h1 { color: var(--primary); font-weight: 800; }
 }
 
 .file-card {
+    position: relative;
     border: 2px dashed var(--secondary);
     border-radius: 12px;
     padding: 15px;
@@ -50,11 +47,29 @@ header h1 { color: var(--primary); font-weight: 800; }
     transition: all 0.3s ease;
 }
 
-.file-card:hover { background: var(--secondary); color: white; border-style: solid; }
 .file-card input { display: none; }
-.file-card .icon { display: block; font-size: 1.5rem; }
+.file-card .icon { display: block; font-size: 1.5rem; margin-bottom: 5px; }
+.file-card .label-text { font-size: 0.8rem; font-weight: bold; display: block; }
 
-/* Inputs */
+.file-card.selected {
+    border-color: var(--success);
+    background: #f0fff4;
+    color: var(--success);
+}
+
+.status-dot {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 10px;
+    height: 10px;
+    background: var(--success);
+    border-radius: 50%;
+    display: none;
+}
+
+.file-card.selected .status-dot { display: block; }
+
 input[type="text"], textarea, input[type="datetime-local"] {
     width: 100%;
     padding: 12px;
@@ -72,27 +87,22 @@ button#saveBtn {
     border-radius: 10px;
     font-weight: bold;
     cursor: pointer;
-    transition: transform 0.2s;
 }
 
-button#saveBtn:active { transform: scale(0.95); }
-
-/* Vault Cards */
 .capsule-card {
     background: white;
     padding: 20px;
     margin-top: 20px;
     border-radius: 15px;
     border-left: 6px solid var(--primary);
-    opacity: 0; /* Handled by GSAP */
     transform: translateY(20px);
+    opacity: 0;
 }
 
 .capsule-card img, .capsule-card video {
     width: 100%;
     border-radius: 10px;
     margin-top: 15px;
-    max-height: 400px;
 }
 
 .timer { font-weight: bold; color: var(--primary); margin-top: 10px; }

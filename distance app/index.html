@@ -3,37 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Distance Doesn’t Delete Love | Time Capsule</title>
+    <title>Distance Doesn’t Delete Love | Multimedia Vault</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
     <div class="container">
         <header>
             <h1>Memory Time Capsule</h1>
-            <p>Lock a message for the future.</p>
+            <p>Seal photos, videos, and messages for the future.</p>
         </header>
 
         <section class="capsule-form">
-            <input type="text" id="capsuleTitle" placeholder="Give your capsule a title..." required>
-            <textarea id="capsuleMessage" placeholder="Write your heart out..." rows="4" required></textarea>
+            <input type="text" id="capsuleTitle" placeholder="Capsule Title" required>
+            <textarea id="capsuleMessage" placeholder="Your message..." rows="3"></textarea>
+            
+            <div class="file-group">
+                <label>📷 Add Photo:</label>
+                <input type="file" id="imageInput" accept="image/*">
+                
+                <label>🎥 Add Video/Audio:</label>
+                <input type="file" id="mediaInput" accept="video/*,audio/*">
+            </div>
+
             <div class="date-input">
-                <label for="unlockDate">Unlock Date:</label>
+                <label>Unlock Date:</label>
                 <input type="date" id="unlockDate" required>
             </div>
-            <button id="saveBtn">Seal the Capsule</button>
-            <p id="formFeedback" class="hidden"></p>
+            
+            <button id="saveBtn">Seal Memory</button>
+            <p id="formFeedback"></p>
         </section>
-
-        <hr>
 
         <section class="capsule-list">
             <h2>Your Vault</h2>
-            <div id="capsuleContainer">
-                </div>
+            <div id="capsuleContainer"></div>
         </section>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>

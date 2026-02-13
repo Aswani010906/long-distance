@@ -1,0 +1,162 @@
+:root {
+  --bg: #fff9f1;
+  --panel: #fffefc;
+  --line: #eadfce;
+  --text: #2f2a24;
+  --muted: #74695e;
+  --accent: #d15a39;
+  --danger: #b93333;
+  --radius: 16px;
+  --shadow: 0 14px 34px rgba(35, 24, 15, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 8% 8%, #ffe6de 0, transparent 30%),
+    radial-gradient(circle at 85% 20%, #ffeec5 0, transparent 34%),
+    radial-gradient(circle at 48% 92%, #ffe2eb 0, transparent 36%),
+    var(--bg);
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-family: "Fraunces", serif;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 1.06;
+}
+
+h2 {
+  font-size: 1rem;
+}
+
+.app {
+  width: min(1100px, 92vw);
+  margin: 28px auto 42px;
+}
+
+.hero,
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+
+.eyebrow {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-size: 0.72rem;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  margin-top: 10px;
+  color: var(--muted);
+}
+
+.controls {
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+
+input,
+button {
+  font: inherit;
+}
+
+input {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #d8cdbf;
+  padding: 10px 12px;
+  background: #fff;
+}
+
+input:focus {
+  outline: 2px solid #ffd4c8;
+  border-color: var(--accent);
+}
+
+.button-row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.btn {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn.danger {
+  background: var(--danger);
+}
+
+.status {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  background: #fff;
+}
+
+.video-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.video-card {
+  display: grid;
+  gap: 10px;
+}
+
+video {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 12px;
+  border: 1px solid #ddcfbe;
+  background: #1f1f1f;
+  object-fit: cover;
+}
+
+@media (max-width: 860px) {
+  .button-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .video-grid {
+    grid-template-columns: 1fr;
+  }
+}

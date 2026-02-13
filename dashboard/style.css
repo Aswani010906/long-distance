@@ -22,36 +22,68 @@ header {
     justify-content: space-between;
     align-items: center;
     padding: 20px;
-    background: white;
+    background: #ffffff;
     border-radius: 20px;
     box-shadow: var(--card-shadow);
+    margin-top: 20px;
     margin-bottom: 40px;
 }
 
-.profile-section { display: flex; align-items: center; gap: 15px; }
-.avatar { font-size: 2rem; background: var(--bg); padding: 10px; border-radius: 50%; }
-header h2 { margin: 0; font-size: 1.1rem; }
-header p { margin: 0; font-size: 0.8rem; color: #888; }
+.profile-section {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
 
-.logout-btn {
-    background: #eee;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 10px;
-    cursor: pointer;
+.avatar {
+    font-size: 1.8rem;
+    background: #fff5f7;
+    padding: 12px;
+    border-radius: 50%;
+}
+
+.user-meta h2 {
+    margin: 0;
+    font-size: 1.1rem;
     font-weight: 600;
 }
 
-.page-title { text-align: center; margin-bottom: 40px; color: var(--primary); }
+.user-meta p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.logout-btn {
+    background: #f0f0f0;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #590d22;
+    transition: background 0.2s;
+}
+
+.logout-btn:hover {
+    background: #e0e0e0;
+}
+
+.page-title {
+    text-align: center;
+    margin-bottom: 40px;
+    color: var(--primary);
+    font-weight: 600;
+}
 
 .activity-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
+    gap: 25px;
 }
 
 .card {
-    background: white;
+    background: #ffffff;
     padding: 30px;
     border-radius: 25px;
     display: flex;
@@ -64,17 +96,31 @@ header p { margin: 0; font-size: 0.8rem; color: #888; }
 }
 
 .card:hover {
-    transform: translateY(-10px);
+    transform: translateY(-8px);
     border-color: var(--primary);
-    box-shadow: 0 15px 40px rgba(255, 77, 109, 0.2);
+    box-shadow: 0 15px 35px rgba(255, 77, 109, 0.15);
 }
 
-.card-icon { font-size: 3rem; }
-.card-content h3 { margin: 0 0 5px 0; color: var(--primary); }
-.card-content p { margin: 0; font-size: 0.9rem; color: #777; }
+.card-icon {
+    font-size: 2.5rem;
+}
+
+.card-content h3 {
+    margin: 0 0 5px 0;
+    color: var(--primary);
+    font-size: 1.1rem;
+}
+
+.card-content p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #777;
+    line-height: 1.4;
+}
 
 .card.locked {
     opacity: 0.6;
     cursor: not-allowed;
     filter: grayscale(1);
+    background: #f9f9f9;
 }

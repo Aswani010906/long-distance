@@ -1,4 +1,4 @@
-// --- 1. DATABASE SETUP ---
+// --- 1. LOCAL DATABASE (IndexedDB) ---
 let db;
 const dbRequest = indexedDB.open("DistanceLoveDB", 1);
 
@@ -10,16 +10,30 @@ dbRequest.onupgradeneeded = (e) => {
 dbRequest.onsuccess = (e) => {
     db = e.target.result;
     renderVault();
-    setInterval(renderVault, 1000); // Live countdown refresh
+    setInterval(renderVault, 1000); 
 };
 
-// --- 2. ENTRANCE ANIMATIONS ---
+// --- 2. GSAP ENTRANCE ---
 window.addEventListener('load', () => {
     gsap.to(".container", { opacity: 1, duration: 1 });
-    gsap.from(".capsule-form", { y: 30, opacity: 0, duration: 0.8, delay: 0.3 });
 });
 
-// --- 3. SAVE MEMORY ---
+// --- 3. FILE FEEDBACK ---
+function setupFilePreview(inputId, labelId) {
+    const input = document.getElementById(inputId);
+    const label = document.getElementById(labelId);
+    input.addEventListener('change', () => {
+        if (input.files && input.files[0]) {
+            label.classList.add('selected');
+            label.querySelector('.label-text').textContent = "Attached ✓";
+            gsap.from(label, { scale: 1.1, duration: 0.3 });
+        }
+    });
+}
+setupFilePreview('imageInput', 'imageLabel');
+setupFilePreview('mediaInput', 'mediaLabel');
+
+// --- 4. SAVE TO LOCALHOST DATABASE ---
 document.getElementById('saveBtn').addEventListener('click', async () => {
     const title = document.getElementById('capsuleTitle').value;
     const message = document.getElementById('capsuleMessage').value;
@@ -27,14 +41,10 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     const imageFile = document.getElementById('imageInput').files[0];
     const mediaFile = document.getElementById('mediaInput').files[0];
 
-    if (!title || !unlockDate) {
-        gsap.to(".capsule-form", { x: 10, repeat: 3, yoyo: true, duration: 0.05 }); // Shake error
-        return alert("Please enter a Title and Unlock Time.");
-    }
+    if (!title || !unlockDate) return alert("Title and Unlock Date are required!");
 
     const capsule = {
-        title,
-        message,
+        title, message,
         unlockAt: new Date(unlockDate).getTime(),
         image: imageFile || null,
         media: mediaFile || null,
@@ -43,15 +53,13 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
 
     const tx = db.transaction("capsules", "readwrite");
     tx.objectStore("capsules").add(capsule);
-
     tx.oncomplete = () => {
-        // Success Animation
-        gsap.to("#saveBtn", { backgroundColor: "#28a745", textContent: "Sealed! ✨", duration: 0.5 });
+        gsap.to("#saveBtn", { backgroundColor: "#28a745", textContent: "Sealed Locally! ✨" });
         setTimeout(() => location.reload(), 1000);
     };
 });
 
-// --- 4. RENDER VAULT ---
+// --- 5. RENDER FROM DATABASE ---
 function renderVault() {
     const container = document.getElementById('capsuleContainer');
     const tx = db.transaction("capsules", "readonly");
@@ -60,36 +68,24 @@ function renderVault() {
 
     getRequest.onsuccess = () => {
         const capsules = getRequest.result;
-        
-        // Sorting: Newest first
         capsules.sort((a, b) => b.created - a.created);
         
-        // We only rebuild if the count changed to avoid animation flickering
         if (container.children.length !== capsules.length) {
             container.innerHTML = '';
             capsules.forEach((cap, i) => {
-                const card = createCard(cap);
+                const card = document.createElement('div');
+                card.className = 'capsule-card';
                 container.appendChild(card);
+                updateCardContent(cap, card);
                 gsap.to(card, { opacity: 1, y: 0, duration: 0.5, delay: i * 0.1 });
             });
         } else {
-            // Just update the timers for existing cards
-            capsules.forEach((cap, i) => {
-                updateTimer(cap, container.children[i]);
-            });
+            capsules.forEach((cap, i) => updateCardContent(cap, container.children[i]));
         }
     };
 }
 
-function createCard(cap) {
-    const card = document.createElement('div');
-    card.className = 'capsule-card';
-    card.id = `cap-${cap.id}`;
-    updateTimer(cap, card);
-    return card;
-}
-
-function updateTimer(cap, cardElement) {
+function updateCardContent(cap, cardElement) {
     const now = Date.now();
     const diff = cap.unlockAt - now;
     const isUnlocked = diff <= 0;
@@ -101,25 +97,15 @@ function updateTimer(cap, cardElement) {
             if (cap.image) mediaHtml += `<img src="${URL.createObjectURL(cap.image)}">`;
             if (cap.media) {
                 const url = URL.createObjectURL(cap.media);
-                mediaHtml += cap.media.type.includes('video') 
-                    ? `<video src="${url}" controls></video>` 
-                    : `<audio src="${url}" controls></audio>`;
+                mediaHtml += cap.media.type.includes('video') ? `<video src="${url}" controls></video>` : `<audio src="${url}" controls></audio>`;
             }
-            cardElement.innerHTML = `
-                <h3>${cap.title}</h3>
-                <p>${cap.message}</p>
-                ${mediaHtml}
-            `;
-            gsap.from(cardElement, { backgroundColor: "#fff0f3", duration: 1 });
+            cardElement.innerHTML = `<h3>${cap.title}</h3><p>${cap.message}</p>${mediaHtml}`;
         }
     } else {
         const d = Math.floor(diff / 86400000);
         const h = Math.floor((diff % 86400000) / 3600000);
         const m = Math.floor((diff % 3600000) / 60000);
         const s = Math.floor((diff % 60000) / 1000);
-        cardElement.innerHTML = `
-            <h3>${cap.title} 🔒</h3>
-            <p class="timer">Opens in: ${d}d ${h}h ${m}m ${s}s</p>
-        `;
+        cardElement.innerHTML = `<h3>${cap.title} 🔒</h3><p class="timer">Opens in: ${d}d ${h}h ${m}m ${s}s</p>`;
     }
 }

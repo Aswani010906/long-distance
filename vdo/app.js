@@ -65,6 +65,31 @@ function init() {
 
   setupMovieEventBroadcast();
 
+  // Integrate any externally added buttons from index.html (loadBtn, pauseBtn, resumeBtn, videoUrl)
+  const externalVideoUrl = document.getElementById('videoUrl');
+  const externalLoadBtn = document.getElementById('loadBtn');
+  const externalPauseBtn = document.getElementById('pauseBtn');
+  const externalResumeBtn = document.getElementById('resumeBtn');
+
+  if (externalLoadBtn) {
+    externalLoadBtn.addEventListener('click', () => {
+      if (externalVideoUrl && els.movieUrl) els.movieUrl.value = externalVideoUrl.value || '';
+      loadMovie();
+    });
+  }
+
+  if (externalPauseBtn) {
+    externalPauseBtn.addEventListener('click', () => {
+      controlMovie('pause');
+    });
+  }
+
+  if (externalResumeBtn) {
+    externalResumeBtn.addEventListener('click', () => {
+      controlMovie('play');
+    });
+  }
+
   setButtons({
     start: true,
     create: false,

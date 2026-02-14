@@ -18,7 +18,9 @@
         <div class="video-panel">
             <div class="input-section">
                 <input type="text" id="videoUrl" placeholder="Paste YouTube link here...">
-                <button class="action-btn" onclick="loadVideo()">Play Movie</button>
+                <button class="action-btn" id="loadBtn">Play Movie</button>
+                <button class="action-btn" id="pauseBtn">Pause (Both)</button>
+                <button class="action-btn" id="resumeBtn">Resume (Both)</button>
             </div>
 
             <div id="playerWrapper" class="player-wrapper">
@@ -32,21 +34,148 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script>
-        function loadVideo() {
-            const url = document.getElementById('videoUrl').value;
+        (function(){
+            const bc = new BroadcastChannel('vdo-sync-channel');
+            const videoUrlEl = document.getElementById('videoUrl');
             const wrapper = document.getElementById('playerWrapper');
-            
-            // Simple logic to extract YouTube ID
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-            const match = url.match(regExp);
+            const loadBtn = document.getElementById('loadBtn');
+            const pauseBtn = document.getElementById('pauseBtn');
+            const resumeBtn = document.getElementById('resumeBtn');
 
-            if (match && match[2].length == 11) {
-                wrapper.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${match[2]}" frameborder="0" allowfullscreen></iframe>`;
-                gsap.from("iframe", { opacity: 0, scale: 0.9, duration: 0.5 });
-            } else {
-                alert("Please enter a valid YouTube link!");
+            let player = {
+                mode: null,
+                yt: null,
+                html5: null,
+            };
+
+            loadBtn.addEventListener('click', () => loadVideo());
+            pauseBtn.addEventListener('click', () => broadcastControl('pause'));
+            resumeBtn.addEventListener('click', () => broadcastControl('play'));
+
+            bc.onmessage = (ev) => {
+                const msg = ev.data;
+                if (!msg || !msg.type || msg.type !== 'control') return;
+                applyRemoteControl(msg.action, msg.time);
+            };
+
+            function broadcastControl(action) {
+                const time = getCurrentTime();
+                applyLocalControl(action, time);
+                bc.postMessage({ type: 'control', action, time });
             }
-        }
+
+            function getCurrentTime() {
+                if (player.mode === 'youtube' && player.yt && typeof player.yt.getCurrentTime === 'function') {
+                    return Number(player.yt.getCurrentTime() || 0);
+                }
+                if (player.mode === 'html5' && player.html5) return player.html5.currentTime || 0;
+                return 0;
+            }
+
+            function applyLocalControl(action, time) {
+                if (player.mode === 'youtube' && player.yt) {
+                    try {
+                        if (typeof time === 'number') player.yt.seekTo(time, true);
+                        if (action === 'play') player.yt.playVideo();
+                        if (action === 'pause') player.yt.pauseVideo();
+                    } catch {}
+                    return;
+                }
+
+                if (player.mode === 'html5' && player.html5) {
+                    try {
+                        if (typeof time === 'number') player.html5.currentTime = time;
+                        if (action === 'play') player.html5.play();
+                        if (action === 'pause') player.html5.pause();
+                    } catch {}
+                }
+            }
+
+            function applyRemoteControl(action, time) {
+                applyLocalControl(action, time);
+            }
+
+            function loadVideo() {
+                const url = videoUrlEl.value.trim();
+                if (!url) return alert('Paste a video URL first');
+
+                const ytId = extractYouTubeId(url);
+                if (ytId) {
+                    loadYouTube(ytId);
+                    gsap.from('#youtubePlayer', { opacity: 0, scale: 0.95, duration: 0.4 });
+                    return;
+                }
+
+                loadHtml5Video(url);
+                gsap.from('#html5player', { opacity: 0, scale: 0.95, duration: 0.4 });
+            }
+
+            function loadHtml5Video(url) {
+                player.mode = 'html5';
+                wrapper.innerHTML = '';
+                const video = document.createElement('video');
+                video.id = 'html5player';
+                video.src = url;
+                video.width = '100%';
+                video.height = '100%';
+                video.controls = true;
+                wrapper.appendChild(video);
+                player.html5 = video;
+
+                video.addEventListener('play', () => { bc.postMessage({ type: 'control', action: 'play', time: video.currentTime }); });
+                video.addEventListener('pause', () => { bc.postMessage({ type: 'control', action: 'pause', time: video.currentTime }); });
+            }
+
+            function loadYouTube(videoId) {
+                player.mode = 'youtube';
+                wrapper.innerHTML = '<div id="youtubePlayer"></div>';
+                ensureYouTubeApi().then(() => {
+                    if (player.yt) {
+                        player.yt.loadVideoById(videoId);
+                        return;
+                    }
+                    player.yt = new YT.Player('youtubePlayer', {
+                        videoId,
+                        playerVars: { playsinline: 1, rel: 0, enablejsapi: 1 },
+                        events: {
+                            onReady: (e) => {},
+                            onStateChange: (e) => {
+                                const st = e.data;
+                                if (st === YT.PlayerState.PLAYING) {
+                                    bc.postMessage({ type: 'control', action: 'play', time: player.yt.getCurrentTime() });
+                                } else if (st === YT.PlayerState.PAUSED) {
+                                    bc.postMessage({ type: 'control', action: 'pause', time: player.yt.getCurrentTime() });
+                                }
+                            }
+                        }
+                    });
+                });
+            }
+
+            function ensureYouTubeApi() {
+                return new Promise((resolve) => {
+                    if (window.YT && window.YT.Player) return resolve();
+                    const prev = window.onYouTubeIframeAPIReady;
+                    window.onYouTubeIframeAPIReady = function() { if (typeof prev === 'function') prev(); resolve(); };
+                    const s = document.createElement('script');
+                    s.src = 'https://www.youtube.com/iframe_api';
+                    s.async = true;
+                    document.head.appendChild(s);
+                });
+            }
+
+            function extractYouTubeId(url) {
+                try {
+                    const u = new URL(url);
+                    if (u.hostname.includes('youtu.be')) return u.pathname.replace('/', '').trim();
+                    if (u.searchParams.get('v')) return u.searchParams.get('v');
+                    const parts = u.pathname.split('/').filter(Boolean);
+                    const idx = parts.indexOf('embed');
+                    if (idx >= 0 && parts[idx+1]) return parts[idx+1];
+                } catch {}
+                return '';
+            }
+        })();
     </script>
 </body>
 </html>

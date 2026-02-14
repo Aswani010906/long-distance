@@ -174,6 +174,13 @@ function updateCardContent(cap, cardElement) {
             } catch (e) {
                 console.warn('Could not purge previous releases', e);
             }
+            // Schedule this unlocked capsule (and any other unlocked items) to be
+            // removed when the page is closed, as requested by the user.
+            try {
+                schedulePurgeOnExit(cap.id);
+            } catch (e) {
+                console.warn('Could not schedule purge on exit', e);
+            }
         }
     } else {
         const d = Math.floor(diff / 86400000);
@@ -208,3 +215,42 @@ function purgePreviousReleases(currentId) {
         });
     };
 }
+
+// Keep a session-only list of capsule ids (or simply mark unlocked items)
+// that should be deleted when the page/window is closed.
+function schedulePurgeOnExit(id) {
+    try {
+        const key = 'purge_on_exit_ids';
+        const raw = sessionStorage.getItem(key);
+        const list = raw ? JSON.parse(raw) : [];
+        if (!list.includes(id)) {
+            list.push(id);
+            sessionStorage.setItem(key, JSON.stringify(list));
+        }
+    } catch (e) {
+        console.warn('schedulePurgeOnExit error', e);
+    }
+}
+
+// Delete all capsules that are unlocked (unlockAt <= now) when the page unloads.
+function purgeUnlockedOnExit() {
+    if (!db) return;
+    const tx = db.transaction('capsules', 'readwrite');
+    const store = tx.objectStore('capsules');
+    const req = store.getAll();
+    req.onsuccess = () => {
+        const items = req.result || [];
+        const now = Date.now();
+        items.forEach(it => {
+            if (!it) return;
+            if ((it.unlockAt || 0) <= now) {
+                try { store.delete(it.id); } catch (e) { console.warn('delete failed', e); }
+            }
+        });
+    };
+}
+
+// Attach handler to remove unlocked capsules on page unload.
+window.addEventListener('beforeunload', () => {
+    try { purgeUnlockedOnExit(); } catch (e) { console.warn(e); }
+});

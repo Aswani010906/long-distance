@@ -11,6 +11,7 @@ if (!user) {
 // 2. Animations
 gsap.from(".card", { opacity: 0, y: 30, duration: 0.8, stagger: 0.2, ease: "power2.out" });
 
+
 // 3. Navigation
 document.getElementById('capsuleCard').addEventListener('click', () => {
     // Navigates to distance app folder -> index.html

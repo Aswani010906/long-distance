@@ -127,6 +127,9 @@ function updatePartnerUI(data) {
         suggestionsDiv.appendChild(span);
     });
 
+    // Burst animation for partner emoji (no external libs required)
+    try { triggerEmojiBurst(partnerEmoji, data.emoji); } catch (err) { /* ignore */ }
+
     // Notify user with a GSAP animation
     if (hasGsap) {
         gsap.fromTo("#partnerStatus", 
@@ -134,4 +137,56 @@ function updatePartnerUI(data) {
             { scale: 1, boxShadow: "0 15px 40px rgba(255, 77, 109, 0.3)", duration: 0.5, yoyo: true, repeat: 1 }
         );
     }
+}
+
+// Create a short-lived burst of emojis radiating from the given element
+function triggerEmojiBurst(anchorEl, emoji, count = 12) {
+    if (!anchorEl || !emoji) return;
+    const rect = anchorEl.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const container = document.createElement('div');
+    container.className = 'emoji-burst-container';
+    document.body.appendChild(container);
+
+    for (let i = 0; i < count; i++) {
+        const span = document.createElement('span');
+        span.className = 'burst-emoji';
+        span.textContent = emoji;
+        // start at center
+        span.style.left = `${centerX}px`;
+        span.style.top = `${centerY}px`;
+        // small random size
+        span.style.fontSize = `${14 + Math.floor(Math.random() * 24)}px`;
+        container.appendChild(span);
+
+        // animate to random direction
+        (function(s) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 60 + Math.random() * 140;
+            const destX = Math.cos(angle) * distance;
+            const destY = Math.sin(angle) * distance;
+            const rotate = Math.floor((Math.random() * 360) - 180);
+            const scale = 0.6 + Math.random() * 0.9;
+            const duration = 600 + Math.floor(Math.random() * 900);
+
+            // apply transitions
+            s.style.transition = `left ${duration}ms cubic-bezier(.2,.9,.2,1), top ${duration}ms cubic-bezier(.2,.9,.2,1), opacity ${duration}ms linear, transform ${duration}ms ease`;
+
+            // trigger on next frame
+            requestAnimationFrame(() => {
+                s.style.left = `${centerX + destX}px`;
+                s.style.top = `${centerY + destY}px`;
+                s.style.opacity = '0';
+                s.style.transform = `translate(-50%, -50%) rotate(${rotate}deg) scale(${scale})`;
+            });
+
+            // cleanup
+            setTimeout(() => { try { s.remove(); } catch (e) {} }, duration + 200);
+        })(span);
+    }
+
+    // remove container after animations
+    setTimeout(() => { try { container.remove(); } catch (e) {} }, 2600);
 }

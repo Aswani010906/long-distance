@@ -1,97 +1,70 @@
 :root {
     --primary: #ff4d6d;
     --bg: #fff5f7;
-    --card-bg: #ffffff;
 }
 
 body {
     font-family: 'Poppins', sans-serif;
-    background-color: var(--bg);
+    background: linear-gradient(135deg, #fff5f7 0%, #ffe3e8 100%);
     margin: 0;
     display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
     min-height: 100vh;
 }
 
 .dashboard-container {
     width: 90%;
-    max-width: 750px; /* Slightly wider to feel balanced with 3 cards */
+    max-width: 800px;
     text-align: center;
-    padding: 40px 0;
 }
 
-.main-title {
-    color: var(--primary);
-    font-size: 3rem;
-    margin-bottom: 40px;
-    font-weight: 600;
-}
-
-.activity-stack {
+header {
     display: flex;
-    flex-direction: column;
-    gap: 20px; /* Consistent gap between all features */
-}
-
-.sanctuary-card {
-    background: var(--card-bg);
-    padding: 25px 35px; /* Slightly tighter padding to fit 3 cards comfortably */
-    border-radius: 30px;
-    display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 25px;
-    cursor: pointer;
-    box-shadow: 0 12px 30px rgba(255, 77, 109, 0.08);
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    border: 2px solid transparent;
-    width: 100%;
-    box-sizing: border-box;
-    min-height: 120px;
+    margin-bottom: 50px;
 }
 
-.sanctuary-card:hover {
-    transform: scale(1.02);
-    border-color: var(--primary);
-    box-shadow: 0 18px 40px rgba(255, 77, 109, 0.15);
-}
+h1 { font-family: 'Dancing Script', cursive; color: var(--primary); font-size: 2.5rem; }
 
-.card-icon {
-    font-size: 3.2rem;
-    min-width: 70px;
-}
-
-.card-text {
-    text-align: left;
-}
-
-.card-text h3 {
-    margin: 0;
-    color: var(--primary);
-    font-size: 1.4rem;
-    font-weight: 600;
-}
-
-.card-text p {
-    margin: 4px 0 0;
-    color: #7a6e71;
-    font-size: 0.95rem;
-    line-height: 1.4;
-}
-
-.minimal-logout {
-    margin-top: 40px;
+#logoutBtn {
     background: transparent;
-    border: 1px solid #ddd;
-    color: #999;
-    padding: 10px 25px;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    padding: 8px 20px;
     border-radius: 20px;
     cursor: pointer;
     font-weight: 600;
-    transition: 0.3s;
 }
 
-.minimal-logout:hover {
-    color: var(--primary);
-    border-color: var(--primary);
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+}
+
+.card {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    padding: 40px;
+    border-radius: 30px;
+    box-shadow: 0 15px 35px rgba(255, 77, 109, 0.1);
+    cursor: pointer;
+    transition: transform 0.3s;
+    border: 1px solid white;
+}
+
+.icon { font-size: 3rem; margin-bottom: 15px; }
+h2 { color: var(--primary); margin: 10px 0; }
+p { color: #777; font-size: 0.9rem; margin-bottom: 20px; }
+
+.btn {
+    background: var(--primary);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 15px;
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 600;
 }

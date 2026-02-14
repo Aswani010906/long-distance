@@ -44,6 +44,30 @@ const state = {
 
 init();
 
+function debugLog(...args) {
+  try {
+    const el = document.getElementById("debug");
+    const txt = args
+      .map((a) => {
+        try {
+          return typeof a === "string" ? a : JSON.stringify(a);
+        } catch (e) {
+          return String(a);
+        }
+      })
+      .join(" ");
+    if (el) {
+      const p = document.createElement("div");
+      p.textContent = `[${new Date().toLocaleTimeString()}] ${txt}`;
+      el.appendChild(p);
+      el.scrollTop = el.scrollHeight;
+    }
+  } catch (e) {
+    // ignore
+  }
+  console.debug(...args);
+}
+
 function init() {
   els.startBtn.addEventListener("click", startCamera);
   els.createBtn.addEventListener("click", createRoom);
@@ -207,12 +231,19 @@ function openChannel(roomId) {
   state.channel.onmessage = async (event) => {
     const msg = event.data;
     // debug incoming message
-    console.debug("[signal] recv:", msg);
+    debugLog("RECV", msg);
     if (!msg || msg.from === state.tabId) return;
+    // ignore messages intended for other rooms
+    if (msg.roomId && state.roomId && msg.roomId !== state.roomId) {
+      debugLog("IGNORED (other room)", msg.roomId);
+      return;
+    }
 
     if (msg.type === "join-request" && state.role === "caller") {
       if (state.pc?.localDescription) {
         sendSignal({ type: "offer", sdp: serializeDescription(state.pc.localDescription) });
+      } else {
+        debugLog("Caller received join-request but has no localDescription yet.");
       }
       sendSignal({ type: "movie-sync-state", payload: getMovieSnapshot() });
       return;
@@ -327,7 +358,7 @@ function sendSignal(payload) {
       roomId: state.roomId,
       ts: Date.now(),
     };
-    console.debug("[signal] send:", msg);
+    debugLog("SEND", msg);
     state.channel.postMessage(msg);
   } catch (error) {
     setStatus(`Signal send failed: ${describeError(error)}`);

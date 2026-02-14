@@ -80,5 +80,5 @@ The deployed version is hosted on Vercel.
 
 ### Screenshots
 
-
+![image](dashboard.png)
 

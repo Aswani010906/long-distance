@@ -73,7 +73,15 @@ function init() {
     hangup: false,
   });
 
-  setStatus(`Ready (${BUILD}). Open this page in two tabs and use the same room code.`);
+  // Warn users when the page is opened via file:// — BroadcastChannel and
+  // cross-tab communication can be unreliable with file origins in some browsers.
+  if (location.protocol === "file:") {
+    setStatus(
+      `Ready (${BUILD}). NOTE: Serving via file:// may block cross-tab signalling. Use a local http server (python -m http.server) and open http://localhost to allow video calls.`
+    );
+  } else {
+    setStatus(`Ready (${BUILD}). Open this page in two tabs and use the same room code.`);
+  }
 }
 
 async function startCamera() {
@@ -165,7 +173,17 @@ async function prepareSession(role, roomId) {
   });
 
   state.pc.addEventListener("track", (event) => {
-    event.streams[0].getTracks().forEach((track) => state.remoteStream.addTrack(track));
+    // event.streams may be empty in some implementations; handle both
+    // event.streams and event.track cases for maximum compatibility.
+    try {
+      if (event.streams && event.streams.length && event.streams[0]) {
+        event.streams[0].getTracks().forEach((track) => state.remoteStream.addTrack(track));
+      } else if (event.track) {
+        state.remoteStream.addTrack(event.track);
+      }
+    } catch (e) {
+      console.debug("track handler error:", e);
+    }
   });
 
   state.pc.addEventListener("connectionstatechange", () => {
@@ -188,6 +206,8 @@ function openChannel(roomId) {
   state.channel = new BroadcastChannel(`video-room-${roomId}`);
   state.channel.onmessage = async (event) => {
     const msg = event.data;
+    // debug incoming message
+    console.debug("[signal] recv:", msg);
     if (!msg || msg.from === state.tabId) return;
 
     if (msg.type === "join-request" && state.role === "caller") {
@@ -298,14 +318,17 @@ async function onIce(candidateData) {
 }
 
 function sendSignal(payload) {
-  if (!state.channel || !state.joined) return;
+  if (!state.channel) return;
+  // allow sending certain control signals even if joined flag toggles
   try {
-    state.channel.postMessage({
+    const msg = {
       ...payload,
       from: state.tabId,
       roomId: state.roomId,
       ts: Date.now(),
-    });
+    };
+    console.debug("[signal] send:", msg);
+    state.channel.postMessage(msg);
   } catch (error) {
     setStatus(`Signal send failed: ${describeError(error)}`);
   }

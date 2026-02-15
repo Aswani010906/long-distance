@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/login", "destination": "/login/login.html" },
+    { "source": "/dashboard", "destination": "/dashboard/index.html" },
+    { "source": "/mood", "destination": "/mood/index.html" },
+    { "source": "/quiz", "destination": "/quiz/quiz.html" },
+    { "source": "/vdo", "destination": "/vdo/index.html" },
+    { "source": "/distance-app", "destination": "/distance app/index.html" } 
+  ]
+}

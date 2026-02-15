@@ -86,4 +86,4 @@ The deployed version is hosted on Vercel.
 ![image](call1.png)
 
 # Deployemnt
-https://aswani010906.github.io/long-distance/
+https://long-distance-tawny.vercel.app/

@@ -11,6 +11,10 @@ const els = {
   moviePlayBtn: document.getElementById("moviePlayBtn"),
   moviePauseBtn: document.getElementById("moviePauseBtn"),
   movieSyncBtn: document.getElementById("movieSyncBtn"),
+  movieBackBtn: document.getElementById("movieBackBtn"),
+  movieForwardBtn: document.getElementById("movieForwardBtn"),
+  movieStatus: document.getElementById("movieStatus"),
+  debug: document.getElementById("debug"),
   moviePlayer: document.getElementById("moviePlayer"),
 };
 
@@ -121,12 +125,19 @@ els.loadMovieBtn.onclick = () => {
   els.moviePlayer.load();
   
   // 3. Play and Notify
+  const afterLoad = () => {
+    updateStatus("Movie Loaded.", "movie");
+    logDebug(`loaded -> ${url}`);
+    broadcastData({ type: "load", url });
+  };
+
   els.moviePlayer.play().then(() => {
-    updateStatus("Movie Loaded & Playing.");
+    updateStatus("Movie Loaded & Playing.", "movie");
+    logDebug(`play after load -> ${url}`);
     broadcastData({ type: "load", url });
   }).catch(e => {
-    updateStatus("Loaded. Click Play to start (Browser blocked autoplay).");
-    broadcastData({ type: "load", url });
+    // autoplay blocked, still notify peers and show status
+    afterLoad();
   });
 };
 
@@ -138,7 +149,8 @@ els.movieSyncBtn.onclick = () => {
     time: els.moviePlayer.currentTime, 
     paused: els.moviePlayer.paused 
   });
-  updateStatus("Sent Sync Command.");
+  updateStatus("Sent Sync Command.", "movie");
+  logDebug(`sent sync time=${els.moviePlayer.currentTime} paused=${els.moviePlayer.paused}`);
 };
 
 function handleVideoAction(action) {
@@ -151,7 +163,23 @@ function handleVideoAction(action) {
     action: action,
     time: els.moviePlayer.currentTime
   });
+  logDebug(`sent control action=${action} time=${els.moviePlayer.currentTime}`);
 }
+
+// back/forward seek buttons
+els.movieBackBtn?.addEventListener('click', () => {
+  if (state.isRemoteChange) return;
+  els.moviePlayer.currentTime = Math.max(0, els.moviePlayer.currentTime - 10);
+  broadcastData({ type: 'control', action: 'seek', time: els.moviePlayer.currentTime });
+  logDebug(`seek -10 -> ${els.moviePlayer.currentTime}`);
+});
+
+els.movieForwardBtn?.addEventListener('click', () => {
+  if (state.isRemoteChange) return;
+  els.moviePlayer.currentTime = els.moviePlayer.currentTime + 10;
+  broadcastData({ type: 'control', action: 'seek', time: els.moviePlayer.currentTime });
+  logDebug(`seek +10 -> ${els.moviePlayer.currentTime}`);
+});
 
 function setupDataChannel(channel) {
   state.dataChannel = channel;
@@ -159,6 +187,7 @@ function setupDataChannel(channel) {
   channel.onmessage = e => {
     const msg = JSON.parse(e.data);
     state.isRemoteChange = true;
+    logDebug(`received over dataChannel: ${JSON.stringify(msg)}`);
     
     if (msg.type === "load") {
       els.moviePlayer.src = msg.url;
@@ -182,8 +211,24 @@ function sendSignal(data) { state.channel.postMessage({ ...data, from: state.tab
 function broadcastData(data) {
   if (state.dataChannel && state.dataChannel.readyState === "open") {
     state.dataChannel.send(JSON.stringify(data));
+    logDebug(`sent over dataChannel: ${JSON.stringify(data)}`);
   } else if (state.channel) {
     state.channel.postMessage({ ...data, from: state.tabId });
+    logDebug(`sent over BroadcastChannel: ${JSON.stringify(data)}`);
   }
 }
-function updateStatus(txt) { els.status.textContent = txt; }
+function updateStatus(txt, target = "main") {
+  if (target === "movie" && els.movieStatus) els.movieStatus.textContent = txt;
+  else els.status.textContent = txt;
+}
+
+function logDebug(txt) {
+  try {
+    if (els.debug) {
+      const n = document.createElement('div');
+      n.textContent = `${new Date().toLocaleTimeString()} — ${txt}`;
+      els.debug.prepend(n);
+    }
+    console.log(txt);
+  } catch (e) {}
+}

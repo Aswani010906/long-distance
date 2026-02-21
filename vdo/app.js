@@ -3,7 +3,6 @@ const els = {
   startBtn: document.getElementById("startBtn"),
   createBtn: document.getElementById("createBtn"),
   joinBtn: document.getElementById("joinBtn"),
-  hangupBtn: document.getElementById("hangupBtn"),
   status: document.getElementById("status"),
   localVideo: document.getElementById("localVideo"),
   remoteVideo: document.getElementById("remoteVideo"),
@@ -11,197 +10,159 @@ const els = {
   loadMovieBtn: document.getElementById("loadMovieBtn"),
   moviePlayBtn: document.getElementById("moviePlayBtn"),
   moviePauseBtn: document.getElementById("moviePauseBtn"),
-  movieBackBtn: document.getElementById("movieBackBtn"),
-  movieForwardBtn: document.getElementById("movieForwardBtn"),
   movieSyncBtn: document.getElementById("movieSyncBtn"),
   moviePlayer: document.getElementById("moviePlayer"),
 };
 
-const rtcConfig = {
-  iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-};
+const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
 const state = {
   tabId: `tab_${Math.random().toString(36).slice(2, 10)}`,
-  role: null,
   pc: null,
   channel: null,
   dataChannel: null,
   localStream: null,
-  remoteStream: null,
-  isApplyingRemote: false, // Prevents sync loops
+  isRemoteChange: false, // CRITICAL: Prevents the "Sync Loop"
 };
 
-init();
-
-function init() {
-  els.startBtn.onclick = startCamera;
-  els.createBtn.onclick = createRoom;
-  els.joinBtn.onclick = joinRoom;
-  els.hangupBtn.onclick = hangUp;
-  els.loadMovieBtn.onclick = loadMovie;
-  
-  els.moviePlayBtn.onclick = () => controlMovie("play");
-  els.moviePauseBtn.onclick = () => controlMovie("pause");
-  els.movieBackBtn.onclick = () => controlMovie("seek", -10);
-  els.movieForwardBtn.onclick = () => controlMovie("seek", 10);
-  
-  els.movieSyncBtn.onclick = () => {
-    sendData({ type: "movie-sync-state", time: els.moviePlayer.currentTime, paused: els.moviePlayer.paused });
-  };
-
-  // Listen for local video events to broadcast
-  els.moviePlayer.onplay = () => !state.isApplyingRemote && controlMovie("play");
-  els.moviePlayer.onpause = () => !state.isApplyingRemote && controlMovie("pause");
-
-  setStatus("Ready. Start camera first.");
-}
-
-async function startCamera() {
+// --- 1. CAMERA & CONNECTION ---
+els.startBtn.onclick = async () => {
   try {
     state.localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     els.localVideo.srcObject = state.localStream;
-    setStatus("Camera active. Create or Join room.");
+    updateStatus("Camera Active. Enter code and Create or Join.");
   } catch (e) {
-    setStatus("Error accessing camera.");
+    updateStatus("Camera Error: " + e.message);
   }
-}
+};
 
-async function prepareSession(role, roomId) {
-  state.role = role;
+els.createBtn.onclick = () => initSession(true);
+els.joinBtn.onclick = () => initSession(false);
+
+async function initSession(isCaller) {
+  const roomId = els.roomCode.value.trim();
+  if (!roomId || !state.localStream) return alert("Start camera & enter room code!");
+
   state.pc = new RTCPeerConnection(rtcConfig);
+  state.channel = new BroadcastChannel(`room_${roomId}`);
 
-  // Add local tracks
-  state.localStream.getTracks().forEach(track => state.pc.addTrack(track, state.localStream));
+  // Attach Camera Tracks BEFORE the offer
+  state.localStream.getTracks().forEach(t => state.pc.addTrack(t, state.localStream));
 
-  // Handle incoming tracks
-  state.pc.ontrack = (event) => {
-    if (!els.remoteVideo.srcObject) {
-      els.remoteVideo.srcObject = event.streams[0];
-    }
+  state.pc.ontrack = e => {
+    if (e.streams[0]) els.remoteVideo.srcObject = e.streams[0];
   };
 
-  // ICE Candidates
-  state.pc.onicecandidate = (event) => {
-    if (event.candidate) sendSignal({ type: "ice", candidate: event.candidate });
+  state.pc.onicecandidate = e => {
+    if (e.candidate) sendSignal({ type: "ice", candidate: e.candidate });
   };
 
-  // Data Channel logic
-  if (role === "caller") {
-    state.dataChannel = state.pc.createDataChannel("movie-sync");
-    setupDataChannelHandlers();
+  if (isCaller) {
+    // Caller creates the Data Channel
+    state.dataChannel = state.pc.createDataChannel("movieSync");
+    setupDataChannel(state.dataChannel);
+    
+    const offer = await state.pc.createOffer();
+    await state.pc.setLocalDescription(offer);
+    sendSignal({ type: "offer", sdp: offer });
+    updateStatus("Room Created. Waiting for partner...");
   } else {
-    state.pc.ondatachannel = (event) => {
-      state.dataChannel = event.channel;
-      setupDataChannelHandlers();
-    };
+    // Callee waits for the Data Channel
+    state.pc.ondatachannel = e => setupDataChannel(e.channel);
+    sendSignal({ type: "request-offer" });
+    updateStatus("Joining Room...");
   }
 
-  openChannel(roomId);
-}
-
-function setupDataChannelHandlers() {
-  state.dataChannel.onopen = () => setStatus("Data Sync Connected!");
-  state.dataChannel.onmessage = (e) => handleDataMessage(JSON.parse(e.data));
-}
-
-async function createRoom() {
-  const roomId = els.roomCode.value.trim();
-  if (!roomId) return alert("Enter Room Code");
-  await prepareSession("caller", roomId);
-  
-  const offer = await state.pc.createOffer();
-  await state.pc.setLocalDescription(offer);
-  sendSignal({ type: "offer", sdp: offer });
-  setStatus("Room Created. Waiting for partner...");
-}
-
-async function joinRoom() {
-  const roomId = els.roomCode.value.trim();
-  if (!roomId) return alert("Enter Room Code");
-  await prepareSession("callee", roomId);
-  sendSignal({ type: "join-request" });
-  setStatus("Joining...");
-}
-
-function openChannel(roomId) {
-  state.channel = new BroadcastChannel(`room-${roomId}`);
-  state.channel.onmessage = async (event) => {
-    const msg = event.data;
-    if (msg.from === state.tabId) return;
-
-    if (msg.type === "join-request" && state.role === "caller") {
-      // Re-send offer if someone joins
-      const offer = await state.pc.createOffer();
-      await state.pc.setLocalDescription(offer);
-      sendSignal({ type: "offer", sdp: offer });
-    } else if (msg.type === "offer" && state.role === "callee") {
-      await state.pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
-      const answer = await state.pc.createAnswer();
-      await state.pc.setLocalDescription(answer);
-      sendSignal({ type: "answer", sdp: answer });
-    } else if (msg.type === "answer") {
-      await state.pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
-    } else if (msg.type === "ice") {
-      try { await state.pc.addIceCandidate(new RTCIceCandidate(msg.candidate)); } catch(e){}
+  // Handle Signaling (The "Handshake")
+  state.channel.onmessage = async ({ data }) => {
+    if (data.from === state.tabId) return;
+    if (data.type === "request-offer" && isCaller) {
+        const offer = await state.pc.createOffer();
+        await state.pc.setLocalDescription(offer);
+        sendSignal({ type: "offer", sdp: offer });
+    } else if (data.type === "offer" && !isCaller) {
+        await state.pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+        const answer = await state.pc.createAnswer();
+        await state.pc.setLocalDescription(answer);
+        sendSignal({ type: "answer", sdp: answer });
+    } else if (data.type === "answer") {
+        await state.pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+    } else if (data.type === "ice") {
+        state.pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(() => {});
     }
   };
 }
 
-// Signaling & Data Helpers
-function sendSignal(payload) {
-  state.channel.postMessage({ ...payload, from: state.tabId });
-}
-
-function sendData(payload) {
-  if (state.dataChannel?.readyState === "open") {
-    state.dataChannel.send(JSON.stringify(payload));
-  }
-}
-
-function handleDataMessage(msg) {
-  state.isApplyingRemote = true; // Block local event listeners
-  if (msg.type === "movie-load") {
-    els.moviePlayer.src = msg.url;
-  } else if (msg.type === "movie-control") {
-    if (msg.action === "play") els.moviePlayer.play();
-    if (msg.action === "pause") els.moviePlayer.pause();
-    if (msg.action === "seek") els.moviePlayer.currentTime = msg.value;
-  } else if (msg.type === "movie-sync-state") {
-    els.moviePlayer.currentTime = msg.time;
-    msg.paused ? els.moviePlayer.pause() : els.moviePlayer.play();
-  }
-  setTimeout(() => state.isApplyingRemote = false, 500);
-}
-
-// Movie Functions
-async function loadMovie() {
-  const url = els.movieUrl.value;
+// --- 2. MOVIE PLAYER LOGIC ---
+els.loadMovieBtn.onclick = () => {
+  const url = els.movieUrl.value.trim();
   if (!url) return;
+  
   els.moviePlayer.src = url;
-  sendData({ type: "movie-load", url });
-}
-
-async function controlMovie(action, value = 0) {
-  if (state.isApplyingRemote) return;
+  els.moviePlayer.load(); // Forces browser to load the new file
   
-  let finalValue = els.moviePlayer.currentTime;
-  if (action === "play") await els.moviePlayer.play();
+  broadcastData({ type: "load", url });
+  updateStatus("Movie Loaded. Syncing with partner...");
+};
+
+els.moviePlayBtn.onclick = () => handleVideoAction("play");
+els.moviePauseBtn.onclick = () => handleVideoAction("pause");
+els.movieSyncBtn.onclick = () => {
+  broadcastData({ 
+    type: "sync", 
+    time: els.moviePlayer.currentTime, 
+    paused: els.moviePlayer.paused 
+  });
+};
+
+function handleVideoAction(action) {
+  if (state.isRemoteChange) return; // Don't send data if we are reacting to partner
+
+  if (action === "play") els.moviePlayer.play();
   if (action === "pause") els.moviePlayer.pause();
-  if (action === "seek") {
-    els.moviePlayer.currentTime += value;
-    finalValue = els.moviePlayer.currentTime;
+
+  broadcastData({
+    type: "control",
+    action: action,
+    time: els.moviePlayer.currentTime
+  });
+}
+
+function setupDataChannel(channel) {
+  state.dataChannel = channel;
+  channel.onopen = () => updateStatus("Connected! Partner found.");
+  channel.onmessage = e => {
+    const msg = JSON.parse(e.data);
+    state.isRemoteChange = true; // LOCK: Mutes outgoing messages while we update
+    
+    if (msg.type === "load") {
+      els.moviePlayer.src = msg.url;
+      els.moviePlayer.load();
+    } else if (msg.type === "control" || msg.type === "sync") {
+      els.moviePlayer.currentTime = msg.time;
+      if (msg.action === "play" || (msg.type === "sync" && !msg.paused)) {
+        els.moviePlayer.play();
+      } else {
+        els.moviePlayer.pause();
+      }
+    }
+    
+    // UNLOCK after the change is finished
+    setTimeout(() => { state.isRemoteChange = false; }, 500);
+  };
+}
+
+// --- 3. HELPERS ---
+function sendSignal(data) {
+  state.channel.postMessage({ ...data, from: state.tabId });
+}
+
+function broadcastData(data) {
+  if (state.dataChannel && state.dataChannel.readyState === "open") {
+    state.dataChannel.send(JSON.stringify(data));
   }
-  
-  sendData({ type: "movie-control", action, value: finalValue });
 }
 
-function hangUp() {
-  state.pc?.close();
-  state.channel?.close();
-  location.reload();
-}
-
-function setStatus(msg) {
-  els.status.textContent = msg;
+function updateStatus(txt) {
+  els.status.textContent = txt;
 }

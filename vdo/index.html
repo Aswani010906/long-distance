@@ -51,7 +51,7 @@
 
       <section class="panel movie-panel">
         <h2>Virtual Movie Date</h2>
-        <p class="subtitle">Paste a direct `.mp4` URL or a YouTube link. Controls sync between both tabs in the same room.</p>
+        <p class="subtitle">Paste a direct `.mp4` URL or a YouTube link. Controls stay synced while you watch together.</p>
 
         <div class="movie-controls">
           <input id="movieUrl" type="text" placeholder="Paste direct video URL (example: https://.../movie.mp4)" />
@@ -67,10 +67,6 @@
         <video id="moviePlayer" controls playsinline></video>
         <div id="youtubePlayerWrap" class="youtube-wrap">
           <div id="youtubePlayer"></div>
-        </div>
-        <div id="debugWrap" class="panel debug-panel">
-          <h3>Debug</h3>
-          <div id="debug" style="font-family:monospace;font-size:12px;max-height:160px;overflow:auto;background:#111;color:#0f0;padding:8px;border-radius:6px;"></div>
         </div>
       </section>
     </main>

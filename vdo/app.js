@@ -18,6 +18,12 @@ const els = {
   moviePlayer: document.getElementById("moviePlayer"),
 };
 
+// Ensure the player will allow CORS-enabled loads and attempt preloading
+try {
+  els.moviePlayer.crossOrigin = "anonymous";
+  els.moviePlayer.preload = "auto";
+} catch (e) {}
+
 const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
 const state = {
@@ -40,8 +46,15 @@ els.startBtn.onclick = async () => {
   }
 };
 
-els.createBtn.onclick = () => initSession(true);
-els.joinBtn.onclick = () => initSession(false);
+els.createBtn.onclick = async () => {
+  await initSession(true);
+  updateStatus("Room created. Waiting for partner...");
+};
+
+els.joinBtn.onclick = async () => {
+  await initSession(false);
+  updateStatus("Joined room. Waiting for connection...");
+};
 
 async function initSession(isCaller) {
   const roomId = els.roomCode.value.trim();
@@ -60,6 +73,8 @@ async function initSession(isCaller) {
     const offer = await state.pc.createOffer();
     await state.pc.setLocalDescription(offer);
     sendSignal({ type: "offer", sdp: offer });
+    // show feedback when caller creates the room and offer is sent
+    updateStatus("Room created and offer sent.");
   } else {
     state.pc.ondatachannel = e => setupDataChannel(e.channel);
     sendSignal({ type: "request-offer" });
@@ -72,12 +87,15 @@ async function initSession(isCaller) {
         await state.pc.setLocalDescription(offer);
         sendSignal({ type: "offer", sdp: offer });
     } else if (data.type === "offer" && !isCaller) {
-        await state.pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
-        const answer = await state.pc.createAnswer();
-        await state.pc.setLocalDescription(answer);
-        sendSignal({ type: "answer", sdp: answer });
+      await state.pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+      const answer = await state.pc.createAnswer();
+      await state.pc.setLocalDescription(answer);
+      sendSignal({ type: "answer", sdp: answer });
+      // provide UI feedback when callee processes an offer and replies
+      updateStatus("Received offer — answered (joined room).");
     } else if (data.type === "answer") {
         await state.pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+      updateStatus("Partner answered — connection progressing...");
     } else if (data.type === "ice") {
         state.pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(() => {});
     }
@@ -108,7 +126,20 @@ async function initSession(isCaller) {
 
 // Handle Player Errors
 els.moviePlayer.onerror = () => {
-  updateStatus("Error: Video link invalid or blocked by CORS.");
+  const err = els.moviePlayer.error;
+  const code = err?.code ?? "unknown";
+  const message = (() => {
+    if (!err) return "unknown media error";
+    switch (err.code) {
+      case err.MEDIA_ERR_ABORTED: return 'You aborted the media playback.';
+      case err.MEDIA_ERR_NETWORK: return 'A network error caused the media download to fail.';
+      case err.MEDIA_ERR_DECODE: return 'The media playback was aborted due to a corruption problem or because the media used features your browser did not support.';
+      case err.MEDIA_ERR_SRC_NOT_SUPPORTED: return 'The media could not be loaded, either because the server or network failed or because the format is not supported.';
+      default: return 'Media error code ' + err.code;
+    }
+  })();
+  logDebug(`mediaError code=${code} message=${message}`);
+  updateStatus(`Error: ${message} (possible CORS or blocked resource)` , "movie");
 };
 
 els.loadMovieBtn.onclick = () => {
@@ -117,12 +148,14 @@ els.loadMovieBtn.onclick = () => {
   
   // 1. Force Reset Player
   els.moviePlayer.pause();
-  els.moviePlayer.removeAttribute('src'); 
+  els.moviePlayer.removeAttribute('src');
+  // ensure crossOrigin is set so CORS-enabled hosts will reply correctly
+  els.moviePlayer.crossOrigin = "anonymous";
   els.moviePlayer.load();
   
   // 2. Set New Source
   els.moviePlayer.src = url;
-  els.moviePlayer.load();
+  try { els.moviePlayer.load(); } catch(e) {}
   
   // 3. Play and Notify
   const afterLoad = () => {
@@ -190,8 +223,9 @@ function setupDataChannel(channel) {
     logDebug(`received over dataChannel: ${JSON.stringify(msg)}`);
     
     if (msg.type === "load") {
+      els.moviePlayer.crossOrigin = "anonymous";
       els.moviePlayer.src = msg.url;
-      els.moviePlayer.load();
+      try { els.moviePlayer.load(); } catch(e) {}
       els.moviePlayer.play().catch(() => {});
     } else if (msg.type === "control" || msg.type === "sync") {
       els.moviePlayer.currentTime = msg.time;

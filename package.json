@@ -1,0 +1,13 @@
+{
+  "name": "long-distance-proxy",
+  "version": "1.0.0",
+  "description": "Small proxy to enable CORS for testing video playback",
+  "main": "server/proxy.js",
+  "scripts": {
+    "start-proxy": "node server/proxy.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "node-fetch": "^2.6.7"
+  }
+}
